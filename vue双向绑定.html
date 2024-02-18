@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>v-model</title>
+</head>
+
+<body>
+    <div id='app'>
+        <h2>{{title}}</h2>
+        <!-- <input id='i' v-model='text' type="text">
+        <h1>{{text}}</h1>
+        <button v-on:click='clickMe'>click me</button> -->
+    </div>
+    <script>
+        //Dom类 解析模板指令，将模板中的变量替换成数据，然后初始化渲染页面视图
+        //并将每个指令对应的节点绑定更新函数，添加监听数据的订阅者，一旦数据有变动，收到通知，更新视图
+        class Doms {
+            constructor(node, vm) {
+                if (node) {
+                    this.$frag = this.nodeToFragment(node, vm)
+                    return this.$frag
+                }
+            }
+            nodeToFragment(node, vm) {//将dom转换成fragment
+                var frag = document.createDocumentFragment()
+                var child;
+                while (child = node.firstChild) {
+                    this.compileElement(child, vm)
+                    frag.appendChild(child)
+                }
+                return frag
+            }
+            compileElement(node, vm) {//获取v-model属性,给dom赋值
+                var reg = /\{\{(.*)\}\}/ //匹配双括号里面的任何字符
+                if (node.nodeType === 1) {//element元素
+                    var attr = node.attributes;
+                    for (var i = 0; i < attr.length; i++) {
+                        if (attr[i].nodeName == 'v-model') {
+                            var name = attr[i].nodeValue//获取绑定的key
+                            node.addEventListener('input', function (e) {
+                                vm[name] = e.target.value//触发set方法
+                            })
+                            new Watcher(vm, node, name, 'value')
+                        } else if (attr[i].nodeName.includes(':')) {
+                            var eventType = attr[i].nodeName.split(':')[1]//事件名
+                            var cb = vm.methods && vm.methods[attr[i].nodeValue]
+                            if (eventType && cb) {
+                                node.addEventListener(eventType, cb.bind(vm), false)
+                            }
+                        }
+                    }
+                    if (node.childNodes && node.childNodes.length) {//如果还有子节点 递归
+                        [...node.childNodes].forEach(n => this.compileElement(n, vm))
+                    }
+                }
+                if (node.nodeType === 3) {//text
+                    if (reg.test(node.nodeValue)) {
+                        var name = RegExp.$1
+                        name = name.trim()
+                        new Watcher(vm, node, name, 'nodeValue')
+                    }
+                }
+            }
+        }
+        class Vue {//Vue类
+            constructor(params) {
+                this.data = params.data //获取属性
+                this.methods = params.methods //获取方法
+                this.observe(params.data, this)//监听属性
+                var id = params.el;
+                var dom = new Doms(document.getElementById(id), this)
+                document.getElementById(id).appendChild(dom)
+                params.mounted.call(this)
+            }
+            observe(obj, vm) {//读取data内属性，并监听
+                if (!obj || typeof obj !== 'object') return
+                Object.keys(obj).forEach(key => this.defineReactive(vm, key, obj[key]))
+            }
+            defineReactive(obj, key, val) {//利用Object.defineProperty监听属性改变
+                var dep = new Dep()
+                Object.defineProperty(obj, key, {
+                    get: function () {
+                        debugger
+                        if (Dep.target) {//添加订阅者watcher到主题对象Dep
+                            dep.addSub(Dep.target)
+                        }
+                        return val
+                    },
+                    set: function (newVal) {
+                        if (newVal === val) return
+                        val = newVal
+                        console.log(val)
+                        //作为发布者发布通知
+                        dep.notify()
+                    }
+                })
+            }
+
+        }
+        class Dep {//收集订阅者的容器类
+            constructor() {
+                this.subs = []
+            }
+            addSub(sub) {
+                this.subs.push(sub)
+            }
+            notify() {
+                this.subs.forEach(sub => sub.update())
+            }
+        }
+
+        class Watcher {
+            constructor(vm, node, name, type) {
+                Dep.target = this
+                this.name = name
+                this.node = node
+                this.vm = vm
+                this.type = type
+                this.update()
+                Dep.target = null
+            }
+            update() {
+                this.get()
+                // console.log(111, this.type)
+                // console.log(222, this.value)
+                this.node[this.type] = this.value//订阅者执行响应操作
+            }
+            get() {
+                this.value = this.vm[this.name]//触发响应属性的get
+            }
+        }
+
+        var vm = new Vue({
+            el: 'app',
+            data: {
+                // text: 'lyl',
+                title: 'hello world'
+            },
+            methods: {
+                clickMe() {
+                    this.title = 'hello world'
+                }
+            },
+            mounted() {
+                setTimeout(() => {
+                    this.title = '你好'
+                }, 1000);
+            }
+        })
+    </script>
+</body>
+
+</html>

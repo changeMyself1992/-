@@ -1,0 +1,756 @@
+************************************************************************************vue
+1. Vue2双向绑定双向绑定原理
+    Vue2双向数据绑定是通过数据劫持+发布订阅者模式来实现的。
+    Vue2实现响应式的核心就是通过Object.defineProperty来劫持对象的get和set，在get中添加订阅，在set中发布更新通知
+
+    1.1 我先去dom结构中找 {{title}} v-model 这些关键字元素了，
+    1.2 由于 title字段已经劫持，那这时候就去主动触发get函数，把这个添加到订阅者
+    1.3 当title改变的时候在set函数中 遍历这些订阅者，然后去发布更新
+
+2. Vue3双向绑定双向绑定原理
+
+    Vue 3 中则使用了 Proxy 来创建响应式对象，Proxy的监听是针对一个对象的，那么对这个对象的所有操作会进入监听操作，这就完全可以代理所有属性了
+
+    这样子就不用像vue2那用需要通过递归来遍历啊对象的所有字段进行 Object.defineProperty数据劫持了
+
+3、Vue的生命周期有哪一些？说一下它们每个阶段做什么操作？
+    created（）vue实例已创建完成，dom还没挂载，这个时候不要操作data数据
+    mounted（）dom已挂载，这个时候可以操作data
+    destroyed  vue实例销毁后调用
+
+4、组件通讯方式有哪一些？
+    12.1 通过父组件props传球的方式
+    12.2 通过vuex
+    12.3 通过 eventBus， Bus.$emit出发，Bus.$on进行监听
+
+5、Vuex有几个属性及作用？
+    state：vuex的基本数据,用来存储变量。
+    getter：state的计算属性，用来读取数据
+    mutation：提交更新数据的方法，必须是同步的，保证数据是单线流动的，类似于面向对象的set属性，可以理解为保护字段的
+    action：一般用来做异步操作，然后使用mutation来提交数据变化
+
+6、Vue的导航守卫有哪一些？
+    router.beforeEach 全局前置守卫 进入路由之前，比如进入路由之前做一些权限验证
+    router.afterEach 全局后置钩子 进入路由之后
+
+7、Vue2.0和vue3.0有什么区别？
+    响应式的实现不同，一个是用来的object.defineProperty来劫持数据的setter和getter方法，这样子他对复杂对象必须递归进行绑定才行，并且还要重写数组的一些方法
+    vue3使用了代理来对整个对象做了劫持，这样子性能就会好很多，但是无法转移为es5代码
+
+
+8、v-for为什么要加一个key？
+    方便diff做同级的比对，绑定了key的这个数据发生了改变，可以快读修改指定节点的虚拟dom然后更新真是dom，而没有key的时候它的所有虚拟节点都遍历一遍
+
+9、你是如何封装一个组件的？
+    多个页面中，又长得一样的样式，我会封装为一个公共组件调用，大部分一样，但是个别地方不一样，我会通过slot方式来让调用者插入
+
+10、keep-alive是什么？有哪几个生命周期阶段？
+    1.<KeepAlive> 默认会缓存内部的所有组件实例，但我们可以通过 include 和 exclude来做限制，那些组件需要缓存，哪些不需要缓存
+    并且还有max属性来设置最大缓存数量
+    2. 被包裹的组件可以实现这俩个事件 onActivated() 和 onDeactivated()，从缓存中被实际挂载，被挂载后移除进入缓存
+
+11、Evenbus是什么东西？
+    给vue的属性绑定一个vue实例，$bus,俩个vue组件分别进行 $emit和$on就可以互相传递数据了
+
+12、父子组件生命周期执行顺序是怎么样的？
+    子组件mounted -> 父组件mounted
+
+13.说一下vue v-module指令的原理
+    1.简单介绍
+        在 Vue.js 中，v-model 指令是一种语法糖，以input输入框举例它等价于  v-bind:value  @input="message = $event.target.value"
+    2.实现原理
+    <template>
+        <input v-model="message">
+    </template>
+    ​
+    <script>
+    export default {
+    data() {
+        return {
+            message: 'Hello, world!'
+        }
+      }
+    }
+    </script>
+        v-model 指令的实现原理是基于计算属性和事件绑定。
+        2.1 vue把v-model绑定的值如上面的message，会创建一个计算属性message
+        2.2 在input事件，拿到值然后赋给message字段
+        2.3 当Vue实例中的数据属性发生变化时，所有使用这个数据属性的地方（如计算属性、模板等）都会自动更新，这就是Vue的响应式原理。
+        如果v-model作用到组件上，那么子组件使用$.emit就可以动态改变父组件v-model绑定的字段
+
+14.vue自定义指令的实现
+    1.指令创建 directives/index.js 文件
+        export default {
+          install (Vue) {
+            function clsTag (el, binding) {
+              // 这里可以有一些你自己的处理埋点数据的逻辑，然后再用setAttribute保存到dom上
+              el.setAttribute('clstag', clsTag)
+            }
+            Vue.directive('clstag', {
+              inserted: clsTag, // 被绑定元素插入父节点时调用 (仅保证父节点存在，但不一定已被插入文档中)。
+              componentUpdated: clsTag //指令所在组件的 VNode 及其子 VNode 全部更新后调用。
+            })
+          }
+        }
+    2.指令注册
+        import directives from './directives';
+        Vue.use(directives);
+    3.指令使用
+        <div @click="handlePlaceOrderBtnClick" clstag="18BS|45950">去下单用红包</div>
+
+15.v-once的使用场景有哪些
+    v-once是Vue中内置指令，仅渲染元素和组件一次，并且跳过未来更新。比如你组件库的 vue文档组件，就可以加上这个指令
+
+16.Vue的diff算法
+        diff算法是一种通过同层的树节点进行比较的高效算法，在diff比较的过程中，循环从俩边向中间比较，
+        同层的多个相同组件一定要加上key，这样便于快速的更新虚拟dom
+
+17.Vue-router 除了 router-link 怎么实现跳转
+    <router-link to="/about">Go to About</router-link> //声明式导航
+    router.push('/users/1') //编程式导航
+
+18.了解nextTick吗？
+    传递一个函数，dom渲染完毕后执行，内部使用了宏任务和微任务
+
+19.Vuex 为什么要分模块并且加命名空间
+     由于使用单一状态树，应用的所有状态会集中到一个比较大的对象。当应用变得非常复杂时，store 对象就有可能变得相当臃肿。为了解决以上问题，Vuex 允许我们将 store 分割成模块（module）。
+      每个模块拥有自己的 state、mutation、action、getter、甚至是嵌套子模块。
+      加上命名空间异步执行action的时候更清晰一点 store.dispatch('user/getInfo')
+
+20.那你能讲一讲MVVM吗？
+    MVVM是Model-View-ViewModel缩写，也就是把MVC中的Controller演变成ViewModel。Model层代表数据模型，View代表UI组件，ViewModel是View和Model层的桥梁，数据会绑定到viewModel层并自动将数据渲染到页面中，视图变化的时候会通知viewModel层更新数据。
+
+21.Vue中组件生命周期调用顺序说一下
+    组件的调用顺序都是先父后子（create）,渲染完成的顺序是先子后父(比如mounted)。
+    组件的销毁操作是先父后子(beforeDestroy)，销毁完成的顺序是先子后父(destroyed)。
+************************************************************************************vue
+
+
+
+************************************************************************************react
+1. jsx如何用一个空节点来包裹html
+    1.1 使用这个来包裹 <></>
+    1.2 使用 Fragment 组件
+
+2. JSX如何在标签上使用js逻辑
+   2.1 用大括号  <h1>{person.name}'s Todos</h1>
+
+3. React 组件如何通过 props 来传递数据
+   3.1 直接在子组件上写属性就行，然后子组件里得第一个是参数默认是props，直接props. 就能拿到数据
+   3.2 props甚至可以直接传递jsx组件，参考下面的代码可以实现类似vue solt插槽的功能
+
+   function App () {
+        return (
+            <Card>
+                <Avatar
+                    size={100}
+                    person={{
+                    name: 'Katsuko Saruhashi',
+                    imageId: 'YfeOqp2'
+                    }}
+                />
+            </Card>
+        )
+    }
+    function Avatar ({ person, size }) {
+        return (
+            <img
+            className='avatar'
+            src='https://img12.360buyimg.com/imagetools/jfs/t1/165503/18/35091/3507/64ae639cFfa6c699c/7cb4cb2fe2033761.png'
+            alt={person.name}
+            width={size}
+            height={size}
+            />
+        )
+    }
+    function Card ({ children }) {
+        return <div className='card'>{children}</div>
+    }
+    export default App
+
+4. react中如何使用条件渲染
+    4.1 直接在大括号里写 js逻辑就好
+   <li className="item">{name} {isPacked && '✔'}</li>
+
+5. react渲染列表
+   5.1 使用jsmap即可，记得加上key来绑定唯一性
+   const listItems = people.map(person =>
+    <li key={person.id}>
+        {person.name}
+    </li>
+  );
+
+6. react阻止冒泡和默认事件
+    e.stopPropagation(); 阻止冒泡
+    e.preventDefault() 阻止默认事件
+
+7. 什么是hook？
+    在 React 中，useState 以及任何其他以 ”use” 开头的函数都称为hook钩子。
+
+8. react函数组件 为什么要用useState保存变量
+    8.1 因为局部变量函数执行就销毁了，即使函数组件重新执行，那申明变量也是初始的，你做的任何改动都不生效啊
+    8.2 你修改局部变量，react也不会触发渲染，react没有意识到它要用新数据再次渲染组件
+
+9. useState做了哪些事
+    const [index, setIndex] = useState(0);
+    9.1 状态变量 用于保留渲染之间的数据。
+    9.2 状态设置函数 用于更新变量并触发 React 再次渲染组件。
+
+10. 你函数组件里申明了多个useState，那每次渲染的时候，useState怎么知道要给你返回哪个状态变量呢？
+    let componentHooks = []; // 8.1这个钩子数组用来存状态变量和对应的设置状态变量的函数 [index, setIndex]
+    let currentHookIndex = 0; // 8.2 每次执行渲染的时候该索引都会重置为0 
+    function useState(initialState) {
+        let pair = componentHooks[currentHookIndex];
+        if (pair) {
+            currentHookIndex++;
+            return pair;
+        }
+        pair = [initialState, setState];
+
+        function setState(nextState) {
+            pair[0] = nextState;
+            updateDOM();
+        }
+        componentHooks[currentHookIndex] = pair;
+        currentHookIndex++;
+        return pair;
+    }
+    // 8.3 你这些状态变量是按顺序申明的，也是按顺序存入hook数组的，那再次触发渲染的时候那也按顺序从hook数组拿就行了呀
+    const [index, setIndex] = useState(0);
+    const [showMore, setShowMore] = useState(false);
+
+11.简述一下react的渲染流程
+    11.1在初始渲染时， React 将调用根组件。
+        const root = createRoot(document.getElementById('root'))
+        root.render(<Image />);
+    11.2对于后续渲染， React 将调用其状态更新触发渲染的函数组件。
+
+12.为什么执行3次设置状态，渲染的结果还是1
+    const [number, setNumber] = useState(0);
+    <button onClick={() => {
+        setNumber(number + 1);
+        setNumber(number + 1);
+        setNumber(number + 1);
+    }}>+3</button>
+    12.1 设置状态只会为下一次渲染更改它!!!第一次渲染number=0，连续执行3此其实是连续执行了setNumber(0 + 1)，所以最后的渲染结果就是1
+    12.2 还有一个因素的是react的批处理在起作用，
+
+13.为什么alert的值还是0
+    13.1因为方法内部变量执行完不销毁的唯一原因就是！！有回调函数在用它，所以打印的时候还是0
+    const [number, setNumber] = useState(0);
+    <button onClick={() => {
+        setNumber(number + 5);
+        setTimeout(() => {
+          alert(number);
+        }, 3000);
+      }}>+5</button>
+
+14.number值会显示为3，为什么？
+    const [number, setNumber] = useState(0);
+    <h1>{number}</h1>
+      <button onClick={() => {
+        setNumber(n => n + 1);
+        setNumber(n => n + 1);
+        setNumber(n => n + 1);
+      }}>+3</button>
+    
+    14.1 这是react的更新函数，在事件处理程序中的所有其他代码运行之后，React 将此函数排队等待处理，
+           当你在下一次渲染期间调用 useState 时，React 会遍历队列。 之前的 number 状态是 0，
+            所以这就是 React 作为 n 参数传递给第一个更新函数的状态。 
+                然后 React 将你之前的更新函数的返回值作为 n 传递给下一个 updater，依此类推，所以最后显示3
+
+16.useReducer是什么？
+    // const [tasks, setTasks] = useState(initialTasks);
+    const [tasks, dispatch] = useReducer(处理状态的逻辑函数, initialTasks);
+    dispatch({
+      type: 'added',
+      id: nextId++,
+      text: text,
+    });
+    跟useState一样也是为了存储状态和设置状态， 但是他把状态处理的逻辑进行了剥离
+     当你的状态很大且复杂，不同的事件操作（比如添加，删除,change,..）,又会有繁琐的逻辑来处理状态时，可以用useReducer来进行剥离
+
+17.使用上下文深入传递数据
+    第 1 步：在一个js文件中创建上下文 
+        import { createContext } from 'react';
+        export const LevelContext = createContext(1);
+    第 2 步：在使用者组件中，使用上下文
+        import { useContext } from 'react';
+        import { LevelContext } from './LevelContext.js';
+        export default function Heading({ children }) {
+            const level = useContext(LevelContext);
+            // ...
+        }
+    第 3 步：在提供者组件中，提供上下文 
+        import { LevelContext } from './LevelContext.js';
+        export default function Section({ level, children }) {
+            return (
+                <section className="section">
+                    <LevelContext.Provider value={level}>
+                        {children}
+                    </LevelContext.Provider>
+                </section>
+            );
+        }
+    最后这么用就可以啦，Heading组件就可以获取level值了
+        <Section level={4}>
+            <Heading>Sub-sub-heading</Heading>
+            <Heading>Sub-sub-heading</Heading>
+            <Heading>Sub-sub-heading</Heading>
+        </Section>
+
+18. ref
+    useRef 是一个 React hook，可让你保存渲染不需要的，比如dom的实例,比如节流，防抖的函数变量
+    import { useRef } from 'react';
+    export default function Form() {
+        const inputRef = useRef(null);
+        function handleClick() {
+            inputRef.current.focus();
+        }
+        return (
+            <>
+            <input ref={inputRef} />
+            <button onClick={handleClick}>
+                Focus the input
+            </button>
+            </>
+        );
+    }
+
+19. 什么是副作用？
+        每次你的组件渲染时，React 都会更新屏幕，然后运行 useEffect 中的代码。 
+        也就是说，useEffect “延迟”！！！！ 一段代码的运行直到渲染反映在屏幕上。
+        所以你可以在副作用中获取dom引用
+
+        import { useEffect, useRef } from 'react';
+        function VideoPlayer({ src, isPlaying }) {
+            const ref = useRef(null);
+            useEffect(() => {
+                if (isPlaying) {
+                ref.current.play();
+                } else {
+                ref.current.pause();
+                }
+            });
+            return <video ref={ref} src={src} loop playsInline />;
+        }
+
+20.副作用的使用，注意关闭react的严格模式，坑死人了，我就说奇了怪，怎么跟以前useEffect出入那么多！！！！
+    useEffect(() => {
+      // 这在每次渲染后运行
+    });
+
+    useEffect(() => {
+      // 这只在挂载时运行(当组件出现时)。
+    },[]);
+
+    useEffect(() => {
+      // 挂载时执行一次，a或b自上次渲染以来发生了变化也会，执行
+    }, [a, b]);
+
+    useEffect(() => {
+      console.log("组件挂载和，count更新的时候执行");
+      return () => {
+        console.log("count发生变化的时候，会先执行这个清楚函数，然后再执行上面的打印逻辑");
+        console.log("组件被卸载的时候也会执行这个清除函数，然后上面的逻辑不在执行");
+      };
+    }, [count]);
+
+    useEffect(() => {
+      console.log("组件挂载执行");
+      return () => {
+      console.log("组件卸载执行");
+      };
+    }, []);
+
+    useEffect(() => {
+      // 监听引用类型的变化。
+    }, [JSON.stringify(引用类型)]);
+
+21.自定义hook
+    它的作用是用来抽取可以重复使用的副作用逻辑。
+      想象一下你有一个卡片组件和按钮组件，当跟服务端长连接的时候，显示在线状态，断开连接的是皇后又显示另一种状态。
+      那么你俩个组件肯定都是需要isOnline这个状态的对吧，那这个长连接的副作用是不是可以抽取到一个单独的js文件里呢？
+      或者你也可以在父组件里做这个事，然后把isOnline进行传球，但是如果这个父组件在路由A页面下，但是我路由B也想复用这个逻辑？
+      那这个时候就发现把副作用抽取到一个js文件里面更合适了对吧！自定义hook就是做这个事的。
+
+    1.定义自己的服务器在线状态hook
+    import { useState, useEffect } from 'react';
+    export function useOnlineStatus() {
+        const [isOnline, setIsOnline] = useState(true);
+        useEffect(() => {
+            function handleOnline() {
+                setIsOnline(true);
+            }
+            function handleOffline() {
+                setIsOnline(false);
+            }
+            window.addEventListener('online', handleOnline);
+            window.addEventListener('offline', handleOffline);
+            return () => {
+                window.removeEventListener('online', handleOnline);
+                window.removeEventListener('offline', handleOffline);
+            };
+        }, []);
+        return isOnline;
+    }
+
+    2.在组件里直接用就好啦
+    import { useOnlineStatus } from './useOnlineStatus.js';
+    function StatusBar() {
+      const isOnline = useOnlineStatus();
+      return <h1>{isOnline ? '✅ Online' : '❌ Disconnected'}</h1>;
+    }
+    function SaveButton() {
+      const isOnline = useOnlineStatus();
+      function handleSaveClick() {
+        console.log('✅ Progress saved');
+      }
+      return (
+        <button disabled={!isOnline} onClick={handleSaveClick}>
+          {isOnline ? 'Save progress' : 'Reconnecting...'}
+        </button>
+      );
+    }
+    export default function App() {
+      return (
+        <>
+          <SaveButton />
+          <StatusBar />
+        </>
+      );
+    }
+
+22.<Suspense>组件是什么
+    <Suspense> 允许你显示占位ui，直到其子级完成加载。
+    我想到需要用到的地方可能是骨架屏和loading
+        <Suspense fallback={<Loading />}>
+          <子级组件 />
+        </Suspense>
+
+23.useCallback
+    1.useCallback 在重新渲染之间缓存一个函数，直到它的依赖发生变化。
+     你看下面的例子当theme属性发生变化，会触发重新渲染时，React会递归地重新渲染它的所有子级
+     但是假设说ShippingForm非常复杂，我们不期望它重新渲染呀，所以我们给ShippingForm组件传递的方法是金国缓存的方法
+     就是告诉ShippingForm在其属性与上次渲染相同时通过将其封装在 memo： 中来跳过重新渲染
+    
+     import { useCallback } from 'react';
+     function ProductPage({ productId, referrer, theme }) {
+       const handleSubmit = useCallback((orderDetails) => {
+         post('/product/' + productId + '/buy', {
+           referrer,
+           orderDetails,
+         });
+       }, [productId, referrer]);
+       
+        return (
+            <div className={theme}>
+             <ShippingForm onSubmit={handleSubmit} />
+            </div>
+        );
+     }
+
+    2.memo 允许你在属性不变时跳过重新渲染组件。
+     import { memo } from 'react';
+     const ShippingForm = memo(function ShippingForm({ onSubmit }) {
+       // ...
+     });
+
+23.useMemo
+    useMemo 在重新渲染之间缓存一个计算结果，直到它的依赖发生变化。
+
+    import { useMemo } from 'react';
+    function TodoList({ todos, tab, theme }) {
+      const visibleTodos = useMemo(() => filterTodos(todos, tab), [todos, tab]);
+      // ...
+    }
+
+24.父组件如何获取子组件的引用
+    父组件使用useRef，子组件使用forwardRef对自己的渲染函数进行包裹，这样子搭配来用
+
+25.lazy懒加载，重要！！
+    lazy 允许你推迟加载组件的代码，直到它需要第一次渲染，需要和<Suspense>标签搭配使用
+
+    import { lazy } from 'react';
+    const MarkdownPreview = lazy(() => import('./MarkdownPreview.js'));
+
+    <Suspense fallback={<Loading />}>
+     <h2>Preview</h2>
+     <MarkdownPreview />
+    </Suspense>
+
+26.memo API
+    memo 允许你在属性不变时跳过重新渲染组件。
+
+27.react 与mvc的关系
+    mvc是一种使用mvc（model view controller 模型-视图-控制器）设计创建web应用程序的模式
+
+28.react闭包陷阱
+   28.1 useState的闭包陷阱
+   // 我就想1秒连续点击3次然后让count变成3怎么办?这个时候就用到了更新函数  setCount(n=n+1);  具体更新函数的解释在上面
+   const [count, setCount] = useState(0);
+   const handleClick = () => {
+    setTimeout(() => {
+      setCount(count + 1);
+    }, 1000);
+   };
+
+   28.2 useEffect闭包陷阱
+     // 现在不管你count怎么变，永远打印的都是0啊，要解决这个问题需要监听[count],这样子状态值改变会先执行更新函数，然后再执行useEffect里面的逻辑
+     const [count, setCount] = useState(0);
+     useEffect(() => {
+       const timer = setInterval(() => {
+         console.log(count);
+       }, 1000);
+       return () => clearInterval(timer);
+     }, []);
+    
+
+
+999.react性能优化
+    999.1 当复杂对象中只有一个字段发生变化的时候，使用解构语法出发状态更新方法，因为它是浅拷贝，不会重新开辟内存空间
+            setPerson({
+                ...person, // Copy the old fields
+                firstName: e.target.value // But override this one
+            });
+
+    999.2.1 使用memo来吧函数组件包起来，这样可以在属性不变的情况下跳过重新渲染组件
+    999.2.2 父组件传递下来的函数尽可能用useCallback进行缓存
+    999.2.3 父组件传递下来的字段尽可能用useMemo 进行缓存
+    
+    999.3 可以适当的封装自定义hook，把共用的副作用提出来
+
+    999.4 lazy懒加载api和<Suspense>标签搭配使用，来进行按需加载
+
+    999.n 图片字体处理一下
+
+
+1000.react注意的坑
+        1000.列表渲染时尽量不要用map的索引，如果列表里面是相同的组件，反转列表渲染会出问题的，因为react认为key没有变，组件也没有变，
+          那么渲染好的节点根本不会给你反转
+
+
+
+************************************************************************************react
+
+
+
+
+************************************************************************************跨平台框架
+24、简单说一下Uni-app？
+    UniApp的跨平台原理是通过封装和抽象各个平台的能力，提供统一的开发接口和打包编译方式，使开发者可以使用一套代码同时在多个平台上运行应用程序。
+    一个路由跳转api方法，名字相同，但在不同的环境吓实现不同，
+************************************************************************************跨平台框架
+
+
+
+************************************************************************************小程序
+30、如何实现小程序的request封装及拦截？
+    跟封装axios一样道理，封装一下wx.request
+
+30、微信小程序禁止 js操作dom的原理是什么样的？
+    在小程序中，页面的结构和样式是使用 WXML 和 WXSS 来定义的，这两种语言是小程序专门为了描述页面结构和样式而设计的。这些语言都不是 HTML 或 CSS 的子集，因此没有类似于 DOM API 的操作元素的方法。
+
+************************************************************************************小程序
+
+
+
+************************************************************************************css
+1、实现水平垂直居中的方式？
+  通过定位的方式，flex伸缩布局的形式
+
+
+4、移动端如何适配不同屏幕尺寸？
+  1. vw 方式，以iphone6举例，把375分成100份，设计图的规范也是按照iphone6来的，比如宽度10px，那转换成vw 就10/（375/100）
+        px2vw(px) {
+            return `${Number(px / (375 / 100)).toFixed(3)}vw`
+        }
+  2. rem的方式，rem是相对于html的font-size的单位。
+     font-size定义为 (屏幕宽度 * 16) / 375
+     css定义为  calc(像素 / 16)+rem;
+
+54、Flex 包含哪三种属性
+    .box{
+      width: 600px;
+      display: flex;
+    }
+    .box1{
+      width: 200px;
+      background-color: aqua;
+      flex-grow: 1;
+    }
+    .box2{
+      width: 200px;
+      background-color: aquamarine;
+      flex-grow: 2;
+    }
+    1. flex-grow：, 当父盒子，减去所有子元素的宽度后还有剩余值，按照每个子元素配置的flex-grow比例再给子元素加宽度，flex-grow的值越大分到的宽度就越多，flex-grow默认是0
+
+    .box{
+      width: 400px;
+      display: flex;
+    }
+    .box1{
+      width: 400px;
+      background-color: aqua;
+      flex-shrink: 1;
+    }
+    .box2{
+      width: 400px;
+      background-color: aquamarine;
+      flex-shrink: 3;
+    }
+    2.flex-shrink：当父盒子，放不下所有子元素的时候，还差多少宽度，按照flex-shrink配置的比例在进行减宽度，flex-shrink值越大，减的宽度就越多，flex-shrink默认值是1
+    3.flex-basis：定义元素分配空间（放大或缩小）之前，元素占据父盒子的大小。 40%，像这样用百分数表示 
+
+    flex:1；
+    //相当于
+    //flex-grow:1;
+************************************************************************************css
+
+
+
+************************************************************************************js
+5、本地存储有哪一些？他们三者有什么区别？
+  localStorage 持久化存储
+  cookie 用来和服务器通讯，需要再同源中携带（比如内嵌了iframe 是无法拿到这个页面的cookie的）
+  sessionStorage 仅在当前浏览器窗口关闭前有效
+
+6、如何判断js的数据类型?
+  typeof，但是他会把object 和array类型都判断为object
+  instanceof，但是 [] instanceof Object 也会被判断为true
+  constructor，使用构造函数来判断是比较好的，[].constructor===Array
+
+7、说一下ES6的新特性有哪些？
+   1.let和const关键字 2.解构赋值 3.箭头函数 4.模板字符串：使用反引号``代替双引号创建字符串 5.标签模板 6.扩展运算符 7.新增了一些字符串和数组方法
+
+8、Let、const、var三者有什么区别？
+  var，全局作用域中申明，比如console面板，它会挂载到window上，其他的声明方式不会
+      他有变量提升的特性，比如你在下面申明 var a = 1; ，再上面打印a，会得出undefined，说明a已经被申明，只是没有赋值而已，其他申明方式也没这个特性
+  const 常量赋值后不可更改
+  let   赋值后可以更改
+
+9、数组去重有哪些办法？
+  1.创建一个新数组，循环旧的数组，判断元素不在新数组中存在就push操作
+  2.  const result = Array.from(new Set([1, 2, 2, 'abc', 'abc', true, true, false, false, undefined, undefined, NaN, NaN]))
+    用new Set，和Array.from 搭配使用
+
+10、说一下深拷贝和浅拷贝，如何自己实现一个深拷贝？
+    浅拷贝，拷贝的是内存地址
+    深拷贝出来的是一个对立的对象
+
+    参拷贝又那些方式
+    11.1 JSON.parse(JSOn.stringify(obj))
+    11.2 lodash.cloneDeep()
+
+15、说一下防抖和节流。怎么实现？
+    防抖：高频事件后n秒内函数只会执行一次，例如输入框，输入一些文字后进行查询操作，可以减少接口压力，或者scroll事件，期望在滚动过程期间内指只执行一次操作
+    节流：高频事件触发，但在n秒内只会执行一次，比如按钮点击事件
+  
+17、你的登录拦截怎么实现的？
+    一般项目会封装一个axios，然后统一做一些异常码处理，服务端返回未登录状态，我就给他跳登录页面
+
+19、闭包是什么？如何实现？
+    简单来说： 闭包就是能够读取其他函数内部变量的函数。 实际应用的话，节流和防抖都用了闭包
+    function F1(){
+        var a = 29;
+        return function(){
+            console.log(a);
+        }
+    }
+
+32、什么是Js原型？原型链是什么？
+    在JavaScript中原型是一个prototype对象，这个上面的字段和方法是所有对象实例共享的，比如数组的puah方法...length字段..
+    每一个对象都有[[Prototype]]属性，该属性指向你得原型对象，你自己挂载到原型上所有所有字段方法都可以在这看到，原型对象上还有一个constructor字段指向你的构造函数，
+     constructor又有一个prototype指向父类的原型对象，就是这样一层一层实现了继承
+
+
+48、js super,是什么？
+    在子类中调用super其实是在调用父类的构造函数,构造函数里this.声明的字段，都是对象自己的，每个对象独一份，构造函数外的声明的方法都是所有实例共享的
+
+37、0.1 + 0.2 等于 0.3吗？为什么？如何解决？
+    不是，因为他是把10进制转换为2进制进行的计算，0.1如法精确用二进制表示，所以有误差
+    解决办法是把0.1 0.2都取整然后在计算，或者直接tofixed限制一下精度就好
+
+    算法：
+        0.1*2=0.2 ----------- 取出整数部分0
+        0.2*2=0.4 ----------- 取出整数部分0
+        0.4*2=0.8 ----------- 取出整数部分0
+        0.8*2=1.6 ----------- 取出整数部分1
+        0.6*2=1.2 ----------- 取出整数部分1
+
+        0.2*2=0.4 ----------- 取出整数部分0
+        0.4*2=0.8 ----------- 取出整数部分0
+        0.8*2=1.6 ----------- 取出整数部分1
+        0.6*2=1.2 ----------- 取出整数部分1
+
+        我们可以发现在无限循环
+        0.1的二进制结果 0.0 0011 0011 0011 .....  "0011的无限循环"
+        0.2的二进制结果 0.0011 0011 0011 0011 .... "0011的无限循环"
+
+39、判断一个变量是否是数组，有哪些办法？
+    Array.isarray,  instanceof，还有查看它的构造函数是否是array
+
+40、判断一个变量是否是对象，有哪些办法？
+    查看它的构造函数是否是Object
+
+43、哪些遍历方式会改变原数组？
+    push() / pop() / shift() / unshift()  sort()...都会改变原数组
+
+44、Set和Map各是什么？
+    Set是一组key的集合，他有天然的去重功能，。var s2 = new Set([1,1, 2, 3]); 
+    Map是一组键值对的集合，拥有很快的查询速度，var m= new Map([['Michael', 95], ['Bob', 75], ['Tracy', 85]]);   m.get('Michael'); // 95
+
+45、介绍一下promise
+    Promise 对象代表一个异步操作，有三种状态，pending进行中，fulfilled已成功，rejected已失败，一般用它来封装一些异步操作，比如请求，文件读写...
+
+46、Promise通常会解决三种问题
+    (1)链式回调
+    (2)同时发起几个异步请求，谁先有结果就拿谁的
+    (3)发起多个请求，等到所有请求后再做下一步处理
+    这三种方式promise是怎么处理的？
+    1. (1)链式回调 promise.then()
+    2. Promise.race() 返回一个 promise，一旦迭代器中的某个 promise 履行或拒绝，返回的 promise 就会履行或拒绝。
+    3. promise.all
+
+47、如何改变一个函数a的上下文？
+    call, apply, bind
+
+************************************************************************************js
+
+
+
+************************************************************************************其他
+28、说一下你项目中遇到的难点，如何解决？
+    1.vue2组件库脚手架处理md文件，如何从插件方式改为loader方式
+
+    2.回公司看一下那个ticket，如何不同源传递数据
+      2.1 统一的单点登录页面 'http://ssa.jd.com/sso/login'
+      2.2 服务端接口 'https://jr-effect.jdfmgt.com/base/login'
+      2.3 前端页面 'https://utest.jr.jd.com/'
+
+      正常情况下，前端页面检测到未登录，跳单点登录页面，登陆后调用服务端base/login接口，然后服务端再跳转前端页面
+     
+      但是这种情况下，服务端和前端不是一个顶级域名，没法往前端种cookie，没法记录登录态怎么办呢？
+        解决办法：单点登陆后调用服务端接口，服务端跳转前端页面，这个时候带一个ticket登录态参数过来，
+        然后前端自己把这个ticket存到cookie里边，每次首发请求的时候通过header的方式带给服务端，这样子来检验是否登录
+
+
+29、Url到浏览器的一个过程有哪些步骤？
+    1.URL解析：
+    2. 发起网络请求：
+    3. 接收HTML文件：
+    4. 构建DOM树
+    5. 请求和解析外部资源
+    6. 构建CSSOM树
+    7. 构建渲染树
+
+30、1.挽留弹窗，开屏广告，悬浮icon...影响用户体验的都要提交申请走审批流
+    2.金融里面所有的页面，对fcp，lcp都有硬性指标，不达标的会标注出来，指定给研发负责人进行优化整改
+    3.各种体验问题，比如页面ui风格不一致，跳转别的活动进行引流，然后引流活动已关闭的...等等问题进行提交收集，并处理
+
+31.金融组件库相关的
+  
+32.黄金模块的h5页面。 10/19-11/26：累计买金4.7亿  开户286人  日uv7-8万
+
+************************************************************************************其他
