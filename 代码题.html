@@ -476,6 +476,48 @@
 
 
 
+    /*****最长连续序列**************************start***算法题******************/
+
+    // // 给定一个未排序的整数数组 nums ，找出数字连续的最长序列（不要求序列元素在原数组中连续）的长度。
+    // var longestConsecutive = function (nums) {
+    //   // 1.先升序,尽可能的让它连续
+    //   for (let i = 0; i < nums.length - 1; i++) {
+    //     for (let j = i + 1; j < nums.length; j++) {
+    //       if (nums[i] > nums[j]) {
+    //         const temp = nums[i];
+    //         nums[i] = nums[j]
+    //         nums[j] = temp
+    //       }
+    //     }
+    //   }
+    //   console.log('升序后的nums:', nums)
+
+    //   // 2. 创建一个二维数组，把nums的每个元素都包起来
+    //   let newNums = [];
+    //   for (let i = 0; i < nums.length; i++) {
+    //     newNums.push([nums[i]])
+    //   }
+
+    //   // 3. 然后进行内外俩层的循环，把所有的连续序列 都存起来
+    //   for (let j = 0; j < newNums.length; j++) {
+    //     for (let i = 0; i < nums.length; i++) {
+    //       if (newNums[j][newNums[j].length - 1] + 1 === nums[i]) {
+    //         newNums[j].push(nums[i])
+    //       }
+    //     }
+    //   }
+    //   console.log("newNums:", newNums)
+    //   // 4. 在二维数组中找到最长的数组，进行打印
+    //   console.log("返回的连续最长数组:", newNums.sort((array1, array2) => {
+    //     return array2.length - array1.length
+    //   })[0])
+    // };
+    // // longestConsecutive([0, 3, 7, 2, 5, 8, 4, 6, 0, 1])// 期望结果是 [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    // // longestConsecutive([100, 4, 200, 1, 3, 2])// 期望结果是 [1, 2, 3, 4]
+    // longestConsecutive([0, 1, 2, 100, 101, 102, 103, 104])// 期望结果是 [100,101,102,103,104]
+
+    /*****最长连续序列**************************end***算法题******************/
+
     /*****数组合并区间**************************start***算法题******************/
     // 道算法题 数组合并区间，[[1,3],[2,6],[8,10],[15,18]] 这种数组，将重叠的部分合并成一个。
     /*****数组合并区间**************************end***算法题******************/
@@ -488,24 +530,49 @@
     // 输入：nums = [-2,1,-3,4,-1,2,1,-5,4]
     // 输出：6
     // 解释：连续子数组 [4,-1,2,1] 的和最大，为 6 。
-    // 连续数组我打印不出来太难了
-    // function maxSubArray (nums) {
-    //   let maxSoFar = nums[0] // 全局和的最大值
-    //   let maxEndingHere = nums[0] // 一直到当前元素和的最大值
 
-    //   for (let i = 1; i < nums.length; ++i) {
-    //     maxEndingHere = Math.max(maxEndingHere + nums[i], nums[i])
-    //     maxSoFar = Math.max(maxSoFar, maxEndingHere)
-    //   }
-    //   return maxSoFar
+    // 解题思路，前一个元素和后一个元素相加，然后和后一个元素比大小，求出当局的最大和,全局最大和就是所有当局最大和最大的那一个！！
+    // 那么
+    // -2+1=-1   (-2,1) 1
+    // 1+-3=-2   (-2,-3) -2
+    // -2+4=2    (2,4) 4
+    // 4+-1=3    (3,-1) 3
+    // 3+2=5     (5,2) 5
+    // 5+1=6     (6,1) 6
+    // 6+-5=1    (1,-5) 1
+    // 1+4=5     (5,4) 5
 
-    //   for (let i = 0; i < array.length; i++) {
-    //     const element = array[i];
 
-    //   }
-    // }
-    // let nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
-    // console.log(maxSubArray(nums))
+    var maxSubArray = function (nums) {
+      let globmax = nums[0];// 全局的最大和
+      let currMax = nums[0]; // 当局的最大和
+      let prevMax = null; // 当局最大和 和 和元素相加的结果
+      let array = [];
+      let index = -1;
+      for (i = 1; i < nums.length; i++) {
+        if (typeof prevMax === 'number') {
+          if (currMax + nums[i] > prevMax) {
+            if (index === -1) {
+              array.push(nums[i])
+            }
+            if (index !== -1 && index + 1 === i) {
+              array.push(nums[i])
+            }
+            console.log('index', index)
+            console.log('i', i)
+            index = i
+          }
+        }
+
+        prevMax = currMax + nums[i];
+        currMax = Math.max(prevMax, nums[i]);
+        globmax = Math.max(currMax, globmax);
+      }
+      console.log(111111111)
+      console.log(globmax)
+      console.log(array)
+    };
+    maxSubArray([-2, 1, -3, 4, -1, 2, 1, -5, 4]);
 
     /*****求连续子数组最大和**************************end***算法题******************/
 
@@ -523,8 +590,9 @@
     // console.log(nums)
     /*****降序**************************start***算法题******************/
 
-
     /*****递归**************************start***算法题******************/
+    // // 给你一个字节点的key，把它对应的祖辈节点的key都找出来
+
     // function findParentKey(tree, targetKey, parentPath = []) {
     //   for (let node of tree) {
     //     if (node.key === targetKey) {
@@ -590,6 +658,23 @@
     // console.log(222, parentKey);
     /*****递归**************************end***算法题******************/
 
+    /*****俩数之和**************************end***算法题******************/
+    //给定一个整数数组 nums 和一个整数目标值 target，请你在该数组中找出 和为目标值 target  的那 两个 整数，并返回它们的数组下标。
+    // var twoSum = function (nums, target) {
+    //   for (let i = 0; i < nums.length; i++) {
+
+    //     for (let j = i + 1; j < nums.length; j++) {
+    //       if (nums[i] + nums[j] === target) {
+    //         return [i, j]
+    //       }
+    //     }
+    //   }
+    // };
+    // // const indexs = twoSum([2, 7, 11, 15], 9);
+    // // const indexs = twoSum([3,2,4], 6);
+    // const indexs = twoSum([3, 3], 6);
+    // console.log(indexs)
+    /*****俩数之和**************************end***算法题******************/
 
   </script>
 </body>
