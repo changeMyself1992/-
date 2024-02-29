@@ -173,7 +173,7 @@
    <li className="item">{name} {isPacked && '✔'}</li>
 
 5. react渲染列表
-   5.1 使用jsmap即可，记得加上key来绑定唯一性
+   5.1 使用js map即可，记得加上key来绑定唯一性
    const listItems = people.map(person =>
     <li key={person.id}>
         {person.name}
